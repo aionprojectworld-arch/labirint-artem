@@ -1,151 +1,191 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <!-- Самое важное для телефона -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Лабиринт для телефона</title>
-    <style>
-        body { margin: 0; padding: 0; background: #222; color: white; font-family: sans-serif; overflow: hidden; }
-        
-        /* Игровое поле */
-        #game {
-            width: 100vw;
-            height: 85vh; /* Оставляем место снизу для кнопок */
-            background: #333;
-            position: relative;
-            box-sizing: border-box;
-        }
-
-        .cell {
-            width: 40px;
-            height: 40px;
-            float: left;
-            box-sizing: border-box;
-        }
-
-        .wall { background: #555; border: 1px solid #777; }
-        .floor { background: #111; border: 1px solid #333; }
-        .player { background: #ff4757; z-index: 10; position: absolute; }
-        .exit { background: #2ed573; border: 2px solid white; }
-
-        /* Кнопки управления */
-        #controls {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            height: 15vh;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            background: #333;
-            padding: 10px;
-            box-sizing: border-box;
-        }
-
-        button {
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            background: #fff;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        button:active { background: #ddd; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Лабиринт для телефона</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a1a;
+      color: #fff;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    h1 { margin: 0 0 10px; font-size: 1.5rem; }
+    #game-container {
+      position: relative;
+      background: #222;
+      border: 4px solid #444;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+    .cell {
+      float: left;
+      box-sizing: border-box;
+    }
+    .wall { background: #555; border: 1px solid #333; }
+    .path { background: #111; border: 1px solid #222; }
+    .player {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #ff4757;
+      border: 2px solid #fff;
+      border-radius: 4px;
+      z-index: 10;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 8px #ff4757;
+    }
+    .exit {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: #2ed573;
+      border: 2px solid #fff;
+      border-radius: 4px;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+    }
+    #controls {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 120px;
+    }
+    button {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 12px;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+    button:active { background: #555; }
+    #status {
+      margin-top: 12px;
+      font-size: 1rem;
+      color: #aaa;
+    }
+    @media (max-width: 600px) {
+      #game-container { width: 280px; height: 280px; }
+      .cell { width: 20px; height: 20px; }
+    }
+    @media (min-width: 601px) {
+      #game-container { width: 400px; height: 400px; }
+      .cell { width: 25px; height: 25px; }
+    }
+  </style>
 </head>
 <body>
+  <h1>Лабиринт</h1>
+  <div id="game-container">
+    <div id="player" class="player"></div>
+    <div id="exit" class="exit"></div>
+  </div>
+  <div id="status">Используй стрелки или кнопки, чтобы пройти лабиринт</div>
+  <div id="controls">
+    <button id="btn-up" onclick="move(0, -1)">↑</button>
+    <button id="btn-left" onclick="move(-1, 0)">←</button>
+    <button id="btn-down" onclick="move(0, 1)">↓</button>
+    <button></button>
+    <button id="btn-right" onclick="move(1, 0)">→</button>
+  </div>
 
-<div id="game"></div>
+  <script>
+    const container = document.getElementById('game-container');
+    const playerEl = document.getElementById('player');
+    const exitEl = document.getElementById('exit');
+    const statusEl = document.getElementById('status');
 
-<div id="controls">
-    <button onclick="move(0, -1)">↑</button>
-    <button onclick="move(-1, 0)">←</button>
-    <button onclick="move(1, 0)">→</button>
-    <button onclick="move(0, 1)">↓</button>
-</div>
+    // Размер сетки (можно менять: 10×10, 12×12 и т.д.)
+    const size = 14;
+    const cellSize = window.innerWidth <= 600 ? 20 : 25;
 
-<script>
-    const gameDiv = document.getElementById('game');
-    const cellSize = 40;
-    let playerX = 1, playerY = 1;
-    let grid = ;
-    let playerEl;
-
-    // Простая карта лабиринта (1 - стена, 0 - пол)
-    const map = [
-        [1,1,1,1,1,1,1,1,1,1],
-        [1,0,0,0,1,0,0,0,0,1],
-        [1,0,1,0,1,0,1,1,0,1],
-        [1,0,1,0,0,0,1,0,0,1],
-        [1,0,1,1,1,1,1,0,1,1],
-        [1,0,0,0,0,0,0,0,0,1],
-        [1,1,1,0,1,1,1,1,0,1],
-        [1,0,0,0,1,0,0,0,0,1],
-        [1,0,1,1,1,0,1,1,1,1],
-        [1,0,0,0,0,0,0,0,2,1] // 2 - выход
+    // Лабиринт: 0 = путь, 1 = стена
+    const maze = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,1,0,0,0,0,0,1,0,0,1],
+      [1,0,1,0,1,0,1,1,1,0,1,0,1,1],
+      [1,0,1,0,0,0,1,0,0,0,1,0,0,1],
+      [1,0,1,1,1,1,1,0,1,1,1,1,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1,0,1],
+      [1,1,1,0,1,1,1,1,1,1,0,1,0,1],
+      [1,0,0,0,1,0,0,0,0,1,0,0,0,1],
+      [1,0,1,1,1,0,1,1,0,1,1,1,0,1],
+      [1,0,0,0,0,0,1,0,0,0,0,1,0,1],
+      [1,1,1,0,1,1,1,0,1,1,0,1,0,1],
+      [1,0,0,0,0,0,0,0,1,0,0,0,0,1],
+      [1,0,1,1,1,1,1,0,1,0,1,1,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,0,1]
     ];
 
+    let playerX = 1, playerY = 1;
+    const exitX = size - 2, exitY = size - 2;
+
     function init() {
-        gameDiv.innerHTML = '';
-        grid = ;
-        
-        map.forEach((row, y) => {
-            row.forEach((cell, x) => {
-                const div = document.createElement('div');
-                div.className = 'cell';
-                
-                if (cell === 1) div.classList.add('wall');
-                if (cell === 0) div.classList.add('floor');
-                if (cell === 2) {
-                    div.classList.add('exit');
-                    div.innerText = 'Выход';
-                    div.style.fontSize = '10px';
-                }
+      container.style.width = (size * cellSize) + 'px';
+      container.style.height = (size * cellSize) + 'px';
 
-                // Позиционирование через абсолютное позиционирование для простоты
-                div.style.left = (x * cellSize) + 'px';
-                div.style.top = (y * cellSize) + 'px';
-                gameDiv.appendChild(div);
-                grid.push({x, y, type: cell, el: div});
-            });
-        });
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const cell = document.createElement('div');
+          cell.className = maze[y][x] ? 'cell wall' : 'cell path';
+          cell.style.width = cellSize + 'px';
+          cell.style.height = cellSize + 'px';
+          container.appendChild(cell);
+        }
+      }
 
-        // Создаем игрока
-        playerEl = document.createElement('div');
-        playerEl.className = 'player cell';
-        playerEl.style.width = cellSize + 'px';
-        playerEl.style.height = cellSize + 'px';
-        updatePlayerPosition();
-        gameDiv.appendChild(playerEl);
+      updatePlayerPosition();
+      updateExitPosition();
     }
 
     function updatePlayerPosition() {
-        playerEl.style.left = (playerX * cellSize) + 'px';
-        playerEl.style.top = (playerY * cellSize) + 'px';
+      playerEl.style.left = (playerX * cellSize + cellSize / 2) + 'px';
+      playerEl.style.top = (playerY * cellSize + cellSize / 2) + 'px';
+    }
+
+    function updateExitPosition() {
+      exitEl.style.left = (exitX * cellSize + cellSize / 2) + 'px';
+      exitEl.style.top = (exitY * cellSize + cellSize / 2) + 'px';
     }
 
     function move(dx, dy) {
-        const newX = playerX + dx;
-        const newY = playerY + dy;
-        
-        // Проверяем границы и стены
-        const targetCell = map[newY][newX];
-        if (targetCell !== 1) { // Если не стена
-            playerX = newX;
-            playerY = newY;
-            updatePlayerPosition();
+      const newX = playerX + dx;
+      const newY = playerY + dy;
 
-            // Проверка победы
-            if (targetCell === 2) {
-                alert("Ты прошел лабиринт!");
-                location.reload(); // Перезапуск
-            }
+      if (newX >= 0 && newX < size && newY >= 0 && newY < size && maze[newY][newX] === 0) {
+        playerX = newX;
+        playerY = newY;
+        updatePlayerPosition();
+
+        if (playerX === exitX && playerY === exitY) {
+          statusEl.textContent = '🎉 Победа! Ты прошёл лабиринт!';
+          statusEl.style.color = '#2ed573';
+        } else {
+          statusEl.textContent = 'Продолжай искать выход';
+          statusEl.style.color = '#aaa';
         }
+      }
     }
 
+    // Управление стрелками на клавиатуре
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') move(0, -1);
+      if (e.key === 'ArrowDown') move(0, 1);
+      if (e.key === 'ArrowLeft') move(-1, 0);
+      if (e.key === 'ArrowRight') move(1, 0);
+    });
+
     init();
-</script>
+  </script>
 </body>
 </html>
